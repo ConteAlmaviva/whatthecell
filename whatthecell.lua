@@ -143,8 +143,7 @@ end );
 ---------------------------------------------------------------------------------------------------
 
 ashita.register_event('incoming_text', function(mode, chat)
-    local c = ashita.regex.search(chat, "ou find ")
-    if (c ~= nil) then
+    if (mode == 121 or mode == 127) then
         for k,v in pairs(cells) do
             local c = ashita.regex.search(chat, string.lower(v['name']));
             if (c ~= nil) then
