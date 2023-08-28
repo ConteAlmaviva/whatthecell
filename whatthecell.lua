@@ -89,6 +89,7 @@ local basePathos = {
 };
 
 local playerPathos = {};
+local timeLeftInSalvage = nil;
 
 function tablefind(tab,el)
     for index, value in pairs(tab) do
@@ -159,9 +160,10 @@ ashita.register_event('incoming_packet', function(id, size, packet)
     if id == 0x00A then
         local f = AshitaCore:GetFontManager():Get('__WhatTheCell_addon');
         local zoneId = struct.unpack('H', packet, 0x30 + 1);
-        if zoneId >= 73 and zoneId <= 76 then
+        if (zoneId >= 73 and zoneId <= 76) then
             f:SetVisibility(true)
             playerPathos = basePathos;
+            timeLeftInSalvage = os.time(os.date("!*t")) + 6000;
         else
             f:SetVisibility(false)
         end
@@ -186,9 +188,13 @@ end);
 
 ashita.register_event('render', function()
     local f = AshitaCore:GetFontManager():Get('__WhatTheCell_addon');
-    local currentPathos = "Currently Locked\n"
+    local currentPathos = "";
+    if timeLeftInSalvage ~= nil then
+        currentPathos = "Time remaining: " .. os.date('!%H:%M:%S', timeLeftInSalvage - os.time(os.date("!*t"))) .. "\n\n"
+    end 
+    currentPathos = currentPathos .. "Currently Locked\n"
     for k,v in pairs(playerPathos) do
         currentPathos = currentPathos .. "\n" .. cells[v]['effect'] .. " (Unlock: " .. cells[v]['name'] .. ")"
-    end
+    end   
     f:SetText(currentPathos)
 end);
