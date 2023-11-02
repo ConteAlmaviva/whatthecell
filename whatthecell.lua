@@ -29,27 +29,39 @@ _addon.version  = '0.0.2';
 
 require 'common'
 
+ashita                  = ashita or { };
+ashita.ffxi             = ashita.ffxi or { };
+ashita.ffxi.vanatime    = ashita.ffxi.vanatime or { };
+
+-- Scan for patterns..
+ashita.ffxi.vanatime.pointer = ashita.memory.findpattern('FFXiMain.dll', 0, 'B0015EC390518B4C24088D4424005068', 0x34, 0);
+
+-- Signature validation..
+if (ashita.ffxi.vanatime.pointer == 0) then
+    error('vanatime.lua -- signature validation failed!');
+end
+
 local cells = {
-    [5365] = {id=5365,name="Incus Cell",effect="Weapons/Shields"},
-    [5371] = {id=5371,name="Undulatus Cell",effect="Ranged/Ammo"},
-    [5366] = {id=5366,name="Castellanus Cell",effect="Head/Neck"},
-    [5370] = {id=5370,name="Cumulus Cell",effect="Body"},
-    [5368] = {id=5368,name="Radiatus Cell",effect="Hand"},
-    [5372] = {id=5372,name="Virga Cell",effect="Earring/Ring"},
-    [5370] = {id=5370,name="Cirrocumulus Cell",effect="Back/Waist"},
-    [5369] = {id=5369,name="Stratus Cell",effect="Leg/Feet"},
-    [5375] = {id=5375,name="Praecipitatio Cell",effect="Magic"},
-    [5373] = {id=5373,name="Duplicatus Cell",effect="Subjob"},
-    [5374] = {id=5374,name="Opacus Cell",effect="JA/WS"},
-    [5383] = {id=5383,name="Humilus Cell",effect="HP"},
-    [5384] = {id=5384,name="Spissatus Cell",effect="MP"},
-    [5376] = {id=5376,name="Pannus Cell",effect="STR"},
-    [5377] = {id=5377,name="Fractus Cell",effect="DEX"},
-    [5378] = {id=5378,name="Congestus Cell",effect="VIT"},
-    [5379] = {id=5379,name="Nimbus Cell",effect="AGI"},
-    [5380] = {id=5380,name="Velum Cell",effect="INT"},
-    [5381] = {id=5381,name="Pileus Cell",effect="MND"},
-    [5382] = {id=5382,name="Mediocris Cell",effect="CHR"},
+    [5365] = {id=5365,name="Incus Cell",effect="Weapons/Shields",need=true},
+    [5371] = {id=5371,name="Undulatus Cell",effect="Ranged/Ammo",need=true},
+    [5366] = {id=5366,name="Castellanus Cell",effect="Head/Neck",need=true},
+    [5367] = {id=5370,name="Cumulus Cell",effect="Body",need=true},
+    [5368] = {id=5368,name="Radiatus Cell",effect="Hand",need=true},
+    [5372] = {id=5372,name="Virga Cell",effect="Earring/Ring",need=true},
+    [5370] = {id=5370,name="Cirrocumulus Cell",effect="Back/Waist",need=true},
+    [5369] = {id=5369,name="Stratus Cell",effect="Leg/Feet",need=true},
+    [5375] = {id=5375,name="Praecipitatio Cell",effect="Magic",need=true},
+    [5373] = {id=5373,name="Duplicatus Cell",effect="Subjob",need=true},
+    [5374] = {id=5374,name="Opacus Cell",effect="JA/WS",need=true},
+    [5383] = {id=5383,name="Humilus Cell",effect="HP",need=true},
+    [5384] = {id=5384,name="Spissatus Cell",effect="MP",need=true},
+    [5376] = {id=5376,name="Pannus Cell",effect="STR",need=true},
+    [5377] = {id=5377,name="Fractus Cell",effect="DEX",need=true},
+    [5378] = {id=5378,name="Congestus Cell",effect="VIT",need=true},
+    [5379] = {id=5379,name="Nimbus Cell",effect="AGI",need=true},
+    [5380] = {id=5380,name="Velum Cell",effect="INT",need=true},
+    [5381] = {id=5381,name="Pileus Cell",effect="MND",need=true},
+    [5382] = {id=5382,name="Mediocris Cell",effect="CHR",need=true},
 }
 
 local WhatTheCell_config =
@@ -69,10 +81,9 @@ local basePathos = {
     5365,
     5371,
     5366,
-    5370,
+    5367,
     5368,
     5372,
-    5370,
     5369,
     5375,
     5373,
@@ -90,6 +101,7 @@ local basePathos = {
 
 local playerPathos = {};
 local timeLeftInSalvage = nil;
+local dateEntered = nil;
 
 function tablefind(tab,el)
     for index, value in pairs(tab) do
@@ -98,6 +110,59 @@ function tablefind(tab,el)
         end
     end
 end
+
+----------------------------------------------------------------------------------------------------
+-- func: get_raw_timestamp
+-- desc: Returns the current raw Vana'diel timestamp.
+----------------------------------------------------------------------------------------------------
+local function get_raw_timestamp()
+    local pointer = ashita.memory.read_uint32(ashita.ffxi.vanatime.pointer);
+    return ashita.memory.read_uint32(pointer + 0x0C);
+end 
+ashita.ffxi.vanatime.get_raw_timestamp = get_raw_timestamp;
+
+local function get_current_date()
+    local timestamp = get_raw_timestamp();
+    local ts = (timestamp + 92514960) * 25;
+    local day = math.floor(ts / 86400);
+
+    -- Calculate the moon information..
+    local mphase = (day + 26) % 84;
+    local mpercent = (((42 - mphase) * 100)  / 42);
+    if (0 > mpercent) then
+        mpercent = math.abs(mpercent);
+    end
+
+    -- Build the date information..
+    local vanadate          = { };
+    vanadate.weekday        = (day % 8);
+    vanadate.day            = (day % 30) + 1;
+    vanadate.month          = ((day % 360) / 30) + 1;
+    vanadate.year           = (day / 360);
+    vanadate.moon_percent   = math.floor(mpercent + 0.5);
+    
+    local days = {
+    "Firesday",
+    "Earthsday",
+    "Watersday",
+    "Windsday",
+    "Iceday",
+    "Lightningsday",
+    "Lightsday",
+    "Darksday"
+    }
+    
+    vanadate.weekday = days[vanadate.weekday + 1]
+    
+    if (38 <= mphase) then  
+        vanadate.moon_phase = math.floor((mphase - 38) / 7);
+    else
+        vanadate.moon_phase = math.floor((mphase + 46) / 7);
+    end
+
+    return vanadate;
+end
+ashita.ffxi.vanatime.get_current_date = get_current_date;
 
 ----------------------------------------------------------------------------------------------------
 -- func: load
@@ -148,7 +213,11 @@ ashita.register_event('incoming_text', function(mode, chat)
         for k,v in pairs(cells) do
             local c = ashita.regex.search(chat, string.lower(v['name']));
             if (c ~= nil) then
-                return ashita.regex.replace(chat, string.lower(v['name']), string.lower(v['name']).. " (" .. string.lower(v['effect']) .. ")");
+                if v['need'] == false then
+                    return ashita.regex.replace(chat, string.lower(v['name']), string.lower(v['name']).. " (" .. string.lower(v['effect']) .. " - have)");
+                else
+                    return ashita.regex.replace(chat, string.lower(v['name']), string.lower(v['name']).. " (" .. string.lower(v['effect']) .. " - need)");
+                end
             end
         end
     end
@@ -166,7 +235,9 @@ ashita.register_event('incoming_packet', function(id, size, packet)
             timeLeftInSalvage = os.time(os.date("!*t")) + 6000;
         else
             f:SetVisibility(false)
+            timeLeftInSalvage = nil
         end
+        dateEntered = get_current_date().weekday;
     end
     return false;
     
@@ -180,6 +251,7 @@ ashita.register_event('outgoing_packet', function(id, size, packet)
         for k,v in pairs(playerPathos) do
             if v == itemId then
                 table.remove(playerPathos, tablefind(playerPathos, v))
+                cells[itemId]['need'] = false
             end
         end
     end
@@ -190,7 +262,7 @@ ashita.register_event('render', function()
     local f = AshitaCore:GetFontManager():Get('__WhatTheCell_addon');
     local currentPathos = "";
     if timeLeftInSalvage ~= nil then
-        currentPathos = "Time remaining: " .. os.date('!%H:%M:%S', timeLeftInSalvage - os.time(os.date("!*t"))) .. "\n\n"
+        currentPathos = "Time remaining: " .. os.date('!%H:%M:%S', timeLeftInSalvage - os.time(os.date("!*t"))) .. "\n(Entered on " .. dateEntered .. ")\n"
     end 
     currentPathos = currentPathos .. "Currently Locked\n"
     for k,v in pairs(playerPathos) do
