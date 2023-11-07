@@ -8,5 +8,6 @@ https://github.com/ConteAlmaviva/whatthecell/assets/8880996/3599d185-365e-4463-9
 
 As is, the addon will not preserve pathos unlock state if you logout and log back in (or disconnect). This could be added in a future version if needed.
 
-Update 08.27.2023: Added a timer to the top of the window:
-![image](https://github.com/ConteAlmaviva/whatthecell/assets/8880996/d9e30949-671f-4757-a8e9-789f68149dc9)
+Update 11.01.2023: Added weekday of entry and fixed a duplicate entry for back/waist and missing entry for body.
+![image](https://github.com/ConteAlmaviva/whatthecell/assets/8880996/2a830e9e-3824-4a87-bf53-3088b98e9359)
+
